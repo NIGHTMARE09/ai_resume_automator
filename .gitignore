@@ -1,0 +1,4 @@
+tailored_resumes/
+job_descriptions/
+__pycache__/
+.env
