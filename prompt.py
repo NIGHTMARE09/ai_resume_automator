@@ -99,7 +99,7 @@ def compile_pdf(tex_path):
         os.chdir(output_dir)
         
         # Run pdflatex with just the filename (no path issues)
-        cmd = ['pdflatex', '-interaction=nonstopmode', filename]
+        cmd = ['pdflatex', '-interaction=nonstopmode', '-file-line-error', '-verbose',filename]
         print(f"Running command: {' '.join(cmd)}")
         process = subprocess.run(cmd, capture_output=True, text=True)
         
