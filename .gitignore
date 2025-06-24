@@ -1,4 +1,10 @@
 tailored_resumes/
 job_descriptions/
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.log
+venv/
 .env

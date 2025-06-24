@@ -27,47 +27,56 @@
 \end{rSection}
 
 \vspace{-5pt}
-\begin{rSection}{WORK EXPERIENCE}
+\begin{rSection}{EXPERIENCE}
 
     \textit{Software Engineer} \hfill December 2023 - Present\\
     \textbf{Scale AI} (Contractual Role)\hfill \textit{Remote, US}
+    {%- if scale_ai_experience %}
     \begin{itemize}
         \vspace{-1pt}
         \itemsep -3pt {}
         {{ scale_ai_experience }}
     \end{itemize}
-
+    {%- endif %}
+    
     \textit{Software Engineer} \hfill \textit{March 2023 - December 2023} \\
     \textbf{Samsung R\&D Institute Bangalore} \hfill \textit{Bengaluru, India}
+    {%- if samsung_experience %}
     \begin{itemize}
         \vspace{-1pt}
         \itemsep -3pt {}
         {{ samsung_experience }}
     \end{itemize}
-
+    {%- endif %}
+    
     \textit{Software Development Engineer Intern} \hfill January 2022 - July 2022\\
     \textbf{Amazon} \hfill \textit{Bengaluru, India}
+    {%- if amazon_experience %}
     \begin{itemize}
         \vspace{-1pt}
         \itemsep -3pt {}
         {{ amazon_experience }}
     \end{itemize}
-
+    {%- endif %}
 \end{rSection}
 
 \begin{rSection}{PROJECTS}
     \textbf{Paytm-mini} \hfill \textit{Side Project}
+    {%- if paytm_mini %}
     \begin{itemize}
         \vspace{-1pt}
         \itemsep -3pt {}
         {{ paytm_mini }}
     \end{itemize}
+    {%- endif %}
 \end{rSection}
 
 \begin{rSection}{SKILLS}
     \begin{itemize}
         \itemsep -3pt {}
-        {{ skills }}
+        {%- for category, skills_string in skills.items() %}
+        \item \textbf{ {{ category }} }: {{ skills_string | trim }}
+        {%- endfor %}
     \end{itemize}
 \end{rSection}
 
@@ -88,11 +97,11 @@
         \vspace{3pt}
             \item Achieved \textbf{Samsung Pro Certified} status by passing the \textbf{SWC Pro Test} and receiving a bonus for this accomplishment.
             \item Ranked \textbf{132} globally in \textbf{CodeChef June LunchTime} 2021 among \textbf{4500+} contestants.
-            \vspace{-3pt} % Adjust the space as needed
+            \vspace{-3pt}
             \item Awarded a global rank of \textbf{1032} in \textbf{Google KickStart} 2021 Round D from \textbf{15000+} participants.
-            \vspace{-3pt} % Adjust the space as needed
+            \vspace{-3pt}
             \item Secured \textbf{9th} place globally in the Code Benders competition out of \textbf{900+} participants.
-        \vspace{-3pt} % Adjust the space as needed
+        \vspace{-3pt}
     \end{itemize}
 \end{rSection}
 

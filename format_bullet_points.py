@@ -68,7 +68,7 @@ def format_bullet_points(content):
 def test_formatter():
     sample_content = r"\item • Optimized data processing pipelines for image annotation projects, reducing annotation time by 25% through parallel processing and improved workflow orchestration using Apache Airflow. Led the implementation of a fault-tolerant microservices architecture for real-time video analysis, ensuring 99.99% uptime during peak loads of 5000+ concurrent users. Architected a distributed caching layer with Redis to handle session management for millions of requests, reducing database load by 70% and improving response times from 200ms to under 50ms."
     sample_content2 = r"\item Designed and implemented a microservices-based architecture for video annotation tasks, improving processing speed by 40\% through parallel processing and load balancing.• Developed Python-based data processing pipelines using Pandas and NumPy to handle large-scale datasets (up to 1TB), reducing annotation errors by 30\%.• Integrated Docker containers with AWS ECS to deploy and scale annotation models efficiently across multiple Availability Zones.\item Optimized database queries using PostgreSQL and Redis caching, improving data retrieval times by 60\%.• Collaborated with data scientists to design scalable data ingestion frameworks, ensuring fault tolerance and high availability for real-time annotation feedback."
-    
+    sample_content3 = r'• Optimized large-scale data processing (800TB-1.5PB) using Python, Ray, React, TypeScript, and Java, enhancing service scalability and computational efficiency.\n• Streamlined data quality workflows with Ray, resulting in 13% monthly cost savings and improved data accessibility via Amazon DynamoDB.\n• Created a React-based dashboard for visualizing Marketplace data quality metrics, enabling data-driven decision-making and improving operational insights.'    
     # Example for testing with a full-stop followed by content (no bullet char initially)
     sample_content_dot_split = "First point content. Second point content should start here. Third point here."
     # To make the test case reflect your specific "Zones.\item Optimized" problem more clearly,
@@ -85,9 +85,9 @@ def test_formatter():
     print("\n" + "="*50)
     print("TEST: Sample Content 2 (Your complex test case)")
     print("Original content:")
-    print(sample_content2)
+    print(sample_content3)
     print("\nFormatted content:")
-    print(format_bullet_points(sample_content2))
+    print(format_bullet_points(sample_content3))
 
     print("\n" + "="*50)
     print("TEST: Full-stop without explicit bullet char")

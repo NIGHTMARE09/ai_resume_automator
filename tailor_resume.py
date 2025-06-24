@@ -1,521 +1,3 @@
-# import os
-# from jinja2 import Template
-# import json
-# import subprocess
-# import time
-# from huggingface_hub import InferenceClient
-# from sanitize_latex import sanitize_latex_content
-# from format_bullet_points import format_bullet_points
-# from dotenv import load_dotenv
-# from litellm import completion
-# # --- Configuration ---
-
-# load_dotenv()
-# OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-# if not OPENROUTER_API_KEY:
-#     raise EnvironmentError("OPENROUTER_API_KEY is not set in the environment or .env file. Please set it before running this script.")
-
-# BASE_RESUME_TEMPLATE_PATH = "base_resume_template.tex"
-# JD_FOLDER = "job_descriptions"
-# OUTPUT_FOLDER = "tailored_resumes"
-
-# # --- Multiple Prompt Strategies ---
-# def get_prompt_strategy_1_ats_focused(base_resume_content, job_description_content):
-#     """
-#     Strategy 1: ATS-Optimized with Keyword Matching
-#     Focus: High ATS score, keyword density, direct language mirroring
-#     """
-#     return f"""
-# You are an expert ATS resume optimizer specializing in Software Engineer positions. Your task is to rewrite resume sections to maximize ATS compatibility and recruiter appeal.
-
-# CRITICAL REQUIREMENTS:
-# 1. Mirror the exact language and terminology from the job description
-# 2. Incorporate ALL relevant technical keywords naturally
-# 3. Use quantifiable metrics where possible (percentages, numbers, scale)
-# 4. Match the job description's tone and phrasing
-# 5. Prioritize hard skills over soft skills
-# 6. Ensure each bullet point demonstrates IMPACT, not just responsibilities
-
-# ANALYSIS FRAMEWORK:
-# - Extract ALL technical skills, frameworks, and tools mentioned in the JD
-# - Identify required years of experience and seniority level
-# - Note specific responsibilities and required outcomes
-# - Match company culture keywords if mentioned
-
-# Job Description Analysis:
-# ---
-# {job_description_content}
-# ---
-
-# Base Resume (Source Material):
-# ---
-# {base_resume_content}
-# ---
-
-# OUTPUT REQUIREMENTS:
-# Return ONLY a valid JSON object with these keys:
-# - "summary": 2-3 sentences using JD language, highlighting relevant experience
-# - "skills": Comma-separated list prioritizing JD-mentioned technologies
-# - "scale_ai_experience": LaTeX bullet points (\\item) with metrics and JD keywords
-# - "samsung_experience": LaTeX bullet points (\\item) with metrics and JD keywords  
-# - "amazon_experience": LaTeX bullet points (\\item) with metrics and JD keywords
-# - "paytm_mini": LaTeX bullet points (\\item) with metrics and JD keywords
-
-# BULLET POINT FORMULA: Action Verb + Specific Technology/Method + Quantifiable Result + Business Impact
-
-# Example: "\\item Architected scalable microservices using Node.js and Docker, reducing API response time by 40% and supporting 10M+ daily transactions"
-
-# IMPORTANT: Return ONLY the raw JSON object without any markdown code blocks, explanations, or additional text.
-# Do not include ```json or ``` markers around your response.
-# """
-
-# def get_prompt_strategy_2_value_focused(base_resume_content, job_description_content):
-#     """
-#     Strategy 2: Value Proposition Focus
-#     Focus: Demonstrating clear business value and problem-solving
-#     """
-#     return f"""
-# You are a senior technical recruiter and resume strategist. Your expertise is translating technical achievements into business value for Software Engineer positions.
-
-# CORE OBJECTIVE: Transform this resume to demonstrate clear value proposition and problem-solving capability that directly addresses the hiring manager's needs.
-
-# VALUE DEMONSTRATION FRAMEWORK:
-# 1. Problem Identification: What challenge did you solve?
-# 2. Technical Solution: How did you solve it? (using JD-relevant technologies)
-# 3. Measurable Impact: What was the business outcome?
-# 4. Scale/Complexity: What was the scope of your work?
-
-# LANGUAGE ALIGNMENT STRATEGY:
-# - Use the EXACT terminology from the job description
-# - Match the company's stated values and culture
-# - Highlight experiences that solve the problems this role will face
-# - Demonstrate progression and growth in responsibilities
-
-# Job Description:
-# ---
-# {job_description_content}
-# ---
-
-# Current Resume Content:
-# ---
-# {base_resume_content}
-# ---
-
-# TAILORING INSTRUCTIONS:
-# 1. Summary: Position yourself as the solution to their specific needs
-# 2. Skills: List technologies in order of JD priority, group by relevance
-# 3. Experience: Reframe each role to show progression toward this target role
-# 4. Projects: Highlight those most relevant to the JD requirements
-
-# Return valid JSON with keys: "summary", "skills", "scale_ai_experience", "samsung_experience", "amazon_experience", "paytm_mini"
-
-# Each experience bullet should follow: Challenge → Solution → Impact → Relevance to target role
-
-# IMPORTANT: Return ONLY the raw JSON object without any markdown code blocks, explanations, or additional text.
-# Do not include ```json or ``` markers around your response.
-# """
-
-# def get_prompt_strategy_3_story_driven(base_resume_content, job_description_content):
-#     """
-#     Strategy 3: Story-Driven Narrative
-#     Focus: Coherent career narrative that leads to this specific role
-#     """
-#     return f"""
-# You are a career storytelling expert specializing in Software Engineer positioning. Create a compelling narrative that shows this candidate's journey naturally leads to this specific role.
-
-# NARRATIVE STRATEGY:
-# - Craft a coherent story of technical growth and specialization
-# - Show how each role built capabilities needed for the target position
-# - Demonstrate increasing responsibility and impact
-# - Use the job description's language as the "destination" of this career journey
-
-# STORY ELEMENTS TO WEAVE:
-# 1. Technical Evolution: How skills progressed toward JD requirements
-# 2. Impact Scaling: How responsibilities and impact grew over time
-# 3. Domain Expertise: How experience aligns with the company's industry/challenges
-# 4. Leadership Growth: How influence and scope expanded
-
-# Job Description (The Destination):
-# ---
-# {job_description_content}
-# ---
-
-# Career Journey (The Path):
-# ---
-# {base_resume_content}
-# ---
-
-# STORYTELLING GUIDELINES:
-# - Start each experience section with context about the business challenge
-# - Show technical decisions and their reasoning
-# - Quantify impact wherever possible
-# - Connect each role to the next in a logical progression
-# - Use compelling action verbs that show ownership and initiative
-
-# JSON OUTPUT with keys: "summary", "skills", "scale_ai_experience", "samsung_experience", "amazon_experience", "paytm_mini"
-
-# Summary should be a compelling elevator pitch that positions you as the ideal candidate for THIS specific role.
-
-# IMPORTANT: Return ONLY the raw JSON object without any markdown code blocks, explanations, or additional text.
-# Do not include ```json or ``` markers around your response.
-# """
-
-# def get_prompt_strategy_4_technical_depth(base_resume_content, job_description_content):
-#     """
-#     Strategy 4: Technical Depth & Architecture Focus
-#     Focus: Demonstrating deep technical competency and system thinking
-#     """
-#     return f"""
-# You are a senior Software Engineer and technical interviewer. Your job is to evaluate and present technical depth that will impress both technical and non-technical hiring managers.
-
-# TECHNICAL COMPETENCY FRAMEWORK:
-# 1. System Design: Show ability to architect scalable solutions
-# 2. Problem Complexity: Demonstrate handling of complex technical challenges
-# 3. Technology Mastery: Show deep understanding, not just usage
-# 4. Performance Impact: Quantify technical improvements
-# 5. Team/Process Impact: Show technical leadership and influence
-
-# DEPTH INDICATORS:
-# - Specific technologies used and WHY they were chosen
-# - Scale of systems worked on (users, transactions, data volume)
-# - Performance improvements achieved
-# - Technical decisions made and their outcomes
-# - Mentoring or technical leadership provided
-
-# Job Requirements Analysis:
-# ---
-# {job_description_content}
-# ---
-
-# Technical Background:
-# ---
-# {base_resume_content}
-# ---
-
-# OPTIMIZATION STRATEGY:
-# 1. Identify the most complex technical achievements from your background
-# 2. Reframe them using the job description's technical terminology
-# 3. Emphasize system thinking and architectural decisions
-# 4. Show progression from individual contributor to technical leader
-# 5. Quantify performance, scalability, and reliability improvements
-
-# Return JSON with keys: "summary", "skills", "scale_ai_experience", "samsung_experience", "amazon_experience", "paytm_mini"
-
-# Each bullet point should demonstrate: Technical Challenge → Solution Architecture → Implementation Details → Measurable Outcome
-
-# IMPORTANT: Return ONLY the raw JSON object without any markdown code blocks, explanations, or additional text.
-# Do not include ```json or ``` markers around your response.
-
-# """
-
-# # --- Helper Functions ---
-# def load_file(file_path):
-#     """Loads content from a text file."""
-#     try:
-#         with open(file_path, 'r', encoding='utf-8') as f:
-#             return f.read()
-#     except FileNotFoundError:
-#         print(f"Error: File not found at {file_path}")
-#         return None
-#     except Exception as e:
-#         print(f"Error loading file {file_path}: {e}")
-#         return None
-
-# def detect_role_type(job_description_content):
-#     """
-#     Analyze job description to determine the best prompt strategy
-#     """
-#     jd_lower = job_description_content.lower()
-    
-#     # Keywords that suggest different focus areas
-#     ats_keywords = ['applicant tracking', 'resume screening', 'keyword', 'ats']
-#     value_keywords = ['business impact', 'roi', 'revenue', 'growth', 'efficiency']
-#     story_keywords = ['career progression', 'leadership', 'mentorship', 'growth']
-#     technical_keywords = ['architecture', 'system design', 'scalability', 'performance', 'senior', 'lead']
-    
-#     scores = {
-#         'ats': sum(1 for kw in ats_keywords if kw in jd_lower),
-#         'value': sum(1 for kw in value_keywords if kw in jd_lower),
-#         'story': sum(1 for kw in story_keywords if kw in jd_lower),
-#         'technical': sum(1 for kw in technical_keywords if kw in jd_lower)
-#     }
-    
-#     # Default to ATS-focused for most software engineer roles
-#     if max(scores.values()) == 0:
-#         return 'ats'
-    
-#     return max(scores, key=scores.get)
-
-# def process_api_response(content):
-#     """
-#     Process and sanitize the API response by removing markdown code block markers
-#     and properly parsing the JSON content.
-#     """
-#     print("Processing and sanitizing content for LaTeX...")
-    
-#     from itemize_lists_keys import ITEMIZE_LIST_KEYS
-    
-#     try:
-#         # Strip any markdown code block markers
-#         if content.startswith("```json"):
-#             # Find the end of the code block
-#             end_marker = content.rfind("```")
-#             if end_marker > 6:  # 6 is the length of "```json"
-#                 content = content[6:end_marker].strip()
-#             else:
-#                 content = content[6:].strip()
-#         elif content.startswith("```"):
-#             # Find the end of the code block
-#             end_marker = content.rfind("```")
-#             if end_marker > 3:  # 3 is the length of "```"
-#                 content = content[3:end_marker].strip()
-#             else:
-#                 content = content[3:].strip()
-                
-#         # Validate JSON before further processing
-#         parsed_content = json.loads(content)
-        
-#         # Define required keys for better error handling
-#         required_keys = ["summary", "skills", "scale_ai_experience", "samsung_experience", "amazon_experience", "paytm_mini"]
-        
-#         # Add missing keys with empty values
-#         for key in required_keys:
-#             if key not in parsed_content:
-#                 print(f"Warning: Missing key '{key}' in response. Adding empty value.")
-#                 parsed_content[key] = ""
-        
-#         processed_content = {}
-        
-#         # Process each value in the parsed content
-#         for key, value in parsed_content.items():
-#             if not isinstance(value, str):
-#                 print(f"Warning: Value for '{key}' is not a string. Converting to string.")
-#                 value = str(value)
-            
-#             # Format and sanitize the content
-            
-#             # Apply bullet formatting ONLY for keys specified in keys_that_are_itemize_lists
-#             if key in ITEMIZE_LIST_KEYS:
-#                 print(f"Formatting '{key}' as bullet points.")
-#                 formatted_value = format_bullet_points(value)
-#             else:
-#                 # for sections that are Not lists (like summary), just strip whitespace
-#                 formatted_value = value.strip()
-#             sanitized_value = sanitize_latex_content(formatted_value)
-#             processed_content[key] = sanitized_value
-            
-#         print("Content processing complete.")
-#         # print("Parsed content:", parsed_content)
-#         return processed_content
-        
-#     except json.JSONDecodeError as e:
-#         print(f"Error decoding JSON from API response: {e}")
-#         print("Raw response content:", content[:500] + "..." if len(content) > 500 else content)
-#         return None
-
-
-# def generate_tailored_content(base_resume_content, job_description_content, strategy=None):
-#     """
-#     Uses Hugging Face/ LiteLLM API to generate tailored content with different strategies
-#     """
-#     if strategy is None:
-#         strategy = detect_role_type(job_description_content)
-    
-#     print(f"Using strategy: {strategy}")
-    
-#     # Select prompt based on strategy
-#     prompt_strategies = {
-#         'ats': get_prompt_strategy_1_ats_focused,
-#         'value': get_prompt_strategy_2_value_focused,
-#         'story': get_prompt_strategy_3_story_driven,
-#         'technical': get_prompt_strategy_4_technical_depth
-#     }
-    
-#     # Improved fallback with logging
-#     if strategy not in prompt_strategies:
-#         print(f"Warning: Strategy '{strategy}' not found. Falling back to 'ats' strategy.")
-#         strategy = 'ats'  # Default fallback
-    
-#     prompt = prompt_strategies[strategy](base_resume_content, job_description_content)
-
-#     try:
-        
-#         print(f"Sending request to DeepSeek-r1-0528-qwen3-8b via LiteLLM...")
-#         response = completion(
-#             model="openrouter/deepseek/deepseek-r1-0528-qwen3-8b",
-#             messages=[
-#                 {
-#                     "role": "system",
-#                     "content": "You are an expert resume optimizer specializing in Software Engineer positions. Always return valid JSON format with precise, impactful content."
-#                 },
-#                 {
-#                     "role": "user",
-#                     "content": prompt,
-#                 }
-#             ],
-#             response_format={"type": "json_object"},
-#             max_tokens=1800,
-#             temperature=0.5,
-#             api_key = OPENROUTER_API_KEY
-            
-#         )
-
-#         content = response.choices[0].message.content
-#         print(f"API response received using {strategy} strategy")
-        
-#         return process_api_response(content)
-                
-#     except Exception as e:
-#         print(f"An error occurred during API call: {str(e)}")
-#         import traceback
-#         print(traceback.format_exc())  # Print full stack trace for debugging
-#         return None
-
-# def generate_resume_file(template_path, tailored_content, output_path):
-#     """Fills the Jinja2 template with tailored content and saves as a .tex file."""
-#     template_str = load_file(template_path)
-#     if template_str is None:
-#         return False
-
-#     template = Template(template_str)
-
-#     try:
-#         # Render the template with the tailored content
-#         rendered_resume = template.render(tailored_content)
-
-#         with open(output_path, 'w', encoding='utf-8') as f:
-#             f.write(rendered_resume)
-#         print(f"• Tailored .tex resume saved at {output_path}")
-#         return True
-#     except Exception as e:
-#         print(f"Error rendering template or saving file {output_path}: {e}")
-#         return False
-
-# def compile_pdf(tex_path):
-#     """Compile the TeX file to PDF using a more reliable method."""
-#     try:
-#         # Get directory and filename separately
-#         output_dir = os.path.dirname(tex_path)
-#         filename = os.path.basename(tex_path)
-        
-#         print(f"Attempting to compile {filename} to PDF...")
-        
-#         # Change to the output directory
-#         original_dir = os.getcwd()
-        
-#         # Copy the resume.cls file to the output directory
-#         cls_source = os.path.join(original_dir, "resume.cls")
-#         cls_dest = os.path.join(output_dir, "resume.cls")
-        
-#         print(f"Copying resume.cls from {cls_source} to {cls_dest}")
-#         if os.path.exists(cls_source):
-#             import shutil
-#             shutil.copy2(cls_source, cls_dest)
-#             print(f"Successfully copied resume.cls to {output_dir}")
-#         else:
-#             print(f"Warning: resume.cls not found at {cls_source}")
-        
-#         # Change to the output directory
-#         os.chdir(output_dir)
-        
-#         # Run pdflatex with just the filename (no path issues)
-#         cmd = ['pdflatex', '-interaction=nonstopmode', filename]
-#         print(f"Running command: {' '.join(cmd)}")
-#         process = subprocess.run(cmd, capture_output=True, text=True)
-        
-#         # Change back to original directory
-#         os.chdir(original_dir)
-        
-#         if process.returncode == 0:
-#             pdf_path = tex_path.replace('.tex', '.pdf')
-#             print(f"• PDF successfully generated at {pdf_path}")
-#             return True
-#         else:
-#             print(f"Error during pdflatex compilation:")
-#             print(f"Command: {cmd}")
-#             print(f"Return Code: {process.returncode}")
-#             print(f"Stdout: {process.stdout[:500]}...")  # Print first 500 chars of output
-#             print(f"• PDF compilation failed for {tex_path}")
-#             return False
-#     except Exception as e:
-#         print(f"Exception during PDF compilation: {e}")
-#         # Make sure to return to the original directory even if an exception occurs
-#         if 'original_dir' in locals():
-#             os.chdir(original_dir)
-#         return False
-
-# def test_all_strategies(base_resume_content, job_description_content, output_prefix):
-#     """
-#     Test all four strategies and generate separate resumes for comparison
-#     """
-#     strategies = ['ats', 'value', 'story', 'technical']
-    
-#     for strategy in strategies:
-#         print(f"\n--- Testing {strategy.upper()} Strategy ---")
-#         tailored_content = generate_tailored_content(
-#             base_resume_content, 
-#             job_description_content, 
-#             strategy=strategy
-#         )
-        
-#         if tailored_content:
-#             output_tex_path = os.path.join(OUTPUT_FOLDER, f"{output_prefix}_{strategy}_strategy.tex")
-#             if generate_resume_file(BASE_RESUME_TEMPLATE_PATH, tailored_content, output_tex_path):
-#                 compile_pdf(output_tex_path)
-
-# # --- Main Logic ---
-# def main():
-#     # Create output folders if they don't exist
-#     os.makedirs(JD_FOLDER, exist_ok=True)
-#     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
-#     base_resume_content = load_file(BASE_RESUME_TEMPLATE_PATH)
-#     if base_resume_content is None:
-#         print("Base resume template not found. Make sure base_resume_template.tex exists.")
-#         return
-
-#     print("Enhanced Resume Tailoring System Starting...")
-#     print("Available strategies: ATS-focused, Value-focused, Story-driven, Technical-depth")
-#     print("Watching for new job descriptions in:", JD_FOLDER)
-    
-#     processed_jds = set()
-
-#     while True:
-#         current_jds = set([f for f in os.listdir(JD_FOLDER) if f.endswith(".txt")])
-#         new_jds = current_jds - processed_jds
-
-#         for jd_file_name in new_jds:
-#             jd_file_path = os.path.join(JD_FOLDER, jd_file_name)
-#             print(f"\nProcessing new job description: {jd_file_name}")
-
-#             job_description_content = load_file(jd_file_path)
-#             if job_description_content is None:
-#                 print(f"Could not read job description from {jd_file_name}. Skipping.")
-#                 processed_jds.add(jd_file_name)
-#                 continue
-
-#             output_file_name_base = os.path.splitext(jd_file_name)[0]
-            
-#             # Option 1: Auto-detect best strategy
-#             print("\n=== Auto-detecting best strategy ===")
-#             tailored_content = generate_tailored_content(base_resume_content, job_description_content)
-            
-#             if tailored_content:
-#                 output_tex_path = os.path.join(OUTPUT_FOLDER, f"{output_file_name_base}_auto_tailored.tex")
-#                 if generate_resume_file(BASE_RESUME_TEMPLATE_PATH, tailored_content, output_tex_path):
-#                     compile_pdf(output_tex_path)
-            
-#             # Option 2: Generate all strategies for comparison (uncomment to enable)
-#             # print("\n=== Generating all strategies for comparison ===")
-#             # test_all_strategies(base_resume_content, job_description_content, output_file_name_base)
-
-#             processed_jds.add(jd_file_name)
-
-#         time.sleep(10)
-
-# if __name__ == "__main__":
-#     main()
-
 import os
 from jinja2 import Template
 import json
@@ -527,6 +9,7 @@ from format_bullet_points import format_bullet_points
 from dotenv import load_dotenv
 from litellm import completion
 import re
+from extract_original_sections import extract_original_sections, _latex_nodes_to_text
 
 # --- Configuration ---
 load_dotenv()
@@ -534,10 +17,12 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 if not OPENROUTER_API_KEY:
     raise EnvironmentError("OPENROUTER_API_KEY is not set in the environment or .env file. Please set it before running this script.")
 
-BASE_RESUME_TEMPLATE_PATH = "base_resume_template.tex"
+BASE_RESUME_TEMPLATE_PATH = "base_resume_template.tex" # path to the Jinja2 template with {{placeholders}} 
+ORIGINAL_RESUME_PATH = "original_resume.tex" # Path to the original resume file
 JD_FOLDER = "job_descriptions"
 OUTPUT_FOLDER = "tailored_resumes"
 
+ORIGINAL_RESUME_DETAILS = {}
 # --- Base Resume Content (Your Original Skills and Summary) ---
 BASE_SKILLS_CATEGORIES = {
     "Programming Languages": ["JavaScript", "TypeScript", "C++", "Python", "SQL", "Java"],
@@ -564,7 +49,13 @@ def extract_jd_keywords(job_description_content):
         'machine learning', 'ai', 'graphql', 'express', 'flask', 'django',
         'vue.js', 'angular', 'spring', 'hibernate', 'junit', 'testing',
         'oauth', 'jwt', 'security', 'encryption', 'load balancing',
-        'elastic search', 'distributed systems', 'high availability'
+        'elastic search', 'distributed systems', 'high availability',
+        'scalability', 'performance tuning', 'api design', 'web services',
+        'full-stack development', 'backend development', 'next.js', 'tailwind css',
+        'redux', 'recoil', 'socket.io', 'websockets', 'graphql', 'firebase',
+        'cloudformation', 'serverless', 'event-driven architecture', 'data pipelines',
+        'cloudflare workers', 'nginx', 'genai', 'llm', 'large language models', 'openai',
+        'openApi', 'newrelic', 'elk stack', 'observability', 'monitoring', 'logging', 'distributed tracing'
     ]
     
     found_keywords = []
@@ -574,80 +65,57 @@ def extract_jd_keywords(job_description_content):
     
     return found_keywords
 
-def generate_categorized_skills(jd_keywords):
-    """Generate skills section maintaining categories while prioritizing JD keywords"""
+
+# --- IMPORTANT: Update generate_categorized_skills to accept LLM's structured output ---
+# Original signature: def generate_categorized_skills(jd_keywords):
+# New signature: def generate_categorized_skills(jd_keywords, llm_structured_skills):
+
+def generate_categorized_skills(jd_keywords, llm_structured_skills):
+    """
+    Generate skills section maintaining categories while prioritizing JD keywords.
+    Prioritizes structured skills from LLM, falls back to base categories.
+    """
     
-    # Map JD keywords to categories
-    keyword_to_category = {
-        'java': 'Programming Languages',
-        'python': 'Programming Languages', 
-        'javascript': 'Programming Languages',
-        'typescript': 'Programming Languages',
-        'sql': 'Programming Languages',
-        'c++': 'Programming Languages',
-        
-        'react': 'Tools and Frameworks',
-        'react.js': 'Tools and Frameworks',
-        'node.js': 'Tools and Frameworks',
-        'express': 'Tools and Frameworks',
-        'flask': 'Tools and Frameworks',
-        'django': 'Tools and Frameworks',
-        'spring boot': 'Tools and Frameworks',
-        'spring': 'Tools and Frameworks',
-        'docker': 'Tools and Frameworks',
-        'kubernetes': 'Tools and Frameworks',
-        'git': 'Tools and Frameworks',
-        'jenkins': 'Tools and Frameworks',
-        'ci/cd': 'Tools and Frameworks',
-        'junit': 'Tools and Frameworks',
-        'testing': 'Tools and Frameworks',
-        'oauth': 'Tools and Frameworks',
-        'jwt': 'Tools and Frameworks',
-        'rest api': 'Tools and Frameworks',
-        'graphql': 'Tools and Frameworks',
-        'redux': 'Tools and Frameworks',
-        'tailwind css': 'Tools and Frameworks',
-        
-        'aws': 'Cloud Skills',
-        'azure': 'Cloud Skills',
-        'gcp': 'Cloud Skills',
-        'microservices': 'Cloud Skills',
-        'cloud computing': 'Cloud Skills',
-        'terraform': 'Cloud Skills',
-        'prometheus': 'Cloud Skills',
-        'grafana': 'Cloud Skills',
-        'elk stack': 'Cloud Skills',
-        
-        'postgresql': 'Databases',
-        'mongodb': 'Databases',
-        'redis': 'Databases',
-        'nosql': 'Databases',
-        'elastic search': 'Databases',
-        'firebase': 'Databases',
-        'database optimization': 'Databases',
-        
-        'system design': 'Other',
-        'algorithms': 'Other',
-        'data structures': 'Other',
-        'agile': 'Other',
-        'scrum': 'Other',
-        'devops': 'Other',
-        'linux': 'Other',
-        'shell scripting': 'Other',
-        'problem-solving': 'Other',
-        'full-stack development': 'Other',
-        'backend architecture': 'Other',
-        'code reviews': 'Other'
-    }
-    
-    # Start with base skills
+    # Start with base skills as a fallback, or if LLM didn't provide complete categories
     enhanced_skills = {category: skills.copy() for category, skills in BASE_SKILLS_CATEGORIES.items()}
-    
-    # Add JD keywords to appropriate categories
+
+    # Prioritize and merge skills from the LLM's structured output
+    if isinstance(llm_structured_skills, dict):
+        for category, skill_string in llm_structured_skills.items():
+            if isinstance(skill_string, str):
+                # Ensure the category exists in our base structure or add it
+                if category not in enhanced_skills:
+                    enhanced_skills[category] = []
+                # Split LLM's comma-separated string and add to the category, avoiding duplicates
+                for skill in [s.strip() for s in skill_string.split(',') if s.strip()]:
+                    if skill not in enhanced_skills[category]:
+                        enhanced_skills[category].append(skill)
+
+    # Now, add JD keywords to appropriate categories, merging with existing
+    keyword_to_category = {
+        # ... (your existing keyword_to_category mapping) ...
+        'java': 'Programming Languages', 'python': 'Programming Languages', 'javascript': 'Programming Languages',
+        'typescript': 'Programming Languages', 'sql': 'Programming Languages', 'c++': 'Programming Languages',
+        'react': 'Tools and Frameworks', 'react.js': 'Tools and Frameworks', 'node.js': 'Tools and Frameworks',
+        'express': 'Tools and Frameworks', 'flask': 'Tools and Frameworks', 'django': 'Tools and Frameworks',
+        'spring boot': 'Tools and Frameworks', 'spring': 'Tools and Frameworks', 'docker': 'Tools and Frameworks',
+        'kubernetes': 'Tools and Frameworks', 'git': 'Tools and Frameworks', 'jenkins': 'Tools and Frameworks',
+        'ci/cd': 'Tools and Frameworks', 'junit': 'Tools and Frameworks', 'testing': 'Tools and Frameworks',
+        'oauth': 'Tools and Frameworks', 'jwt': 'Tools and Frameworks', 'rest api': 'Tools and Frameworks',
+        'graphql': 'Tools and Frameworks', 'redux': 'Tools and Frameworks', 'tailwind css': 'Tools and Frameworks',
+        'aws': 'Cloud Skills', 'azure': 'Cloud Skills', 'gcp': 'Cloud Skills', 'microservices': 'Cloud Skills',
+        'cloud computing': 'Cloud Skills', 'terraform': 'Cloud Skills', 'prometheus': 'Cloud Skills',
+        'grafana': 'Cloud Skills', 'elk stack': 'Cloud Skills',
+        'postgresql': 'Databases', 'mongodb': 'Databases', 'redis': 'Databases', 'nosql': 'Databases',
+        'elastic search': 'Databases', 'firebase': 'Databases', 'database optimization': 'Databases',
+        'system design': 'Other', 'algorithms': 'Other', 'data structures': 'Other', 'agile': 'Other',
+        'scrum': 'Other', 'devops': 'Other', 'linux': 'Other', 'shell scripting': 'Other',
+        'problem-solving': 'Other', 'full-stack development': 'Other', 'backend architecture': 'Other', 'code reviews': 'Other'
+    }
+
     for keyword in jd_keywords:
         category = keyword_to_category.get(keyword.lower())
         if category and category in enhanced_skills:
-            # Capitalize properly
             formatted_keyword = keyword.title() if keyword.lower() not in ['ci/cd', 'rest api', 'jwt', 'oauth', 'sql', 'nosql', 'ai', 'ml', 'aws', 'gcp', 'elk stack'] else keyword.upper() if keyword.lower() in ['sql', 'nosql', 'ai', 'ml', 'aws', 'gcp'] else keyword
             if formatted_keyword not in enhanced_skills[category]:
                 enhanced_skills[category].append(formatted_keyword)
@@ -656,10 +124,17 @@ def generate_categorized_skills(jd_keywords):
     latex_skills = []
     for category, skills in enhanced_skills.items():
         if skills:  # Only include categories with skills
-            skills_str = ", ".join(skills)
-            latex_skills.append(f"\\item\n\\textbf{{{category}:}} {skills_str}. \\\\\n\\vspace{{1pt}}")
-    
+            
+            # Sanitize the category name and the skills string BEFORE creating the LaTeX string
+            sanitized_category = sanitize_latex_content(category)
+            sanitized_skills_str = sanitize_latex_content(", ".join(skills))
+            
+            # Now, use the sanitized variables in the f-string
+            latex_skills.append(f"\\item\n\\textbf{{{sanitized_category}:}} {sanitized_skills_str}. \\\\\n\\vspace{{1pt}}")
+        
     return "\n\n".join(latex_skills)
+
+
 
 def generate_authentic_summary(jd_keywords, job_description_content):
     """Generate summary that maintains authenticity while incorporating JD keywords"""
@@ -680,7 +155,64 @@ def generate_authentic_summary(jd_keywords, job_description_content):
         'rest': 'RESTful APIs',
         'full-stack': 'full-stack development',
         'backend': 'backend development',
-        'frontend': 'frontend development'
+        'frontend': 'frontend development',
+        'sql': 'SQL',
+        'nosql': 'NoSQL',
+        'graphql': 'GraphQL',
+        'redis': 'Redis',
+        'postgresql': 'PostgreSQL',
+        'mongodb': 'MongoDB',
+        'elasticsearch': 'Elastic Search',
+        'firebase': 'Firebase',
+        'jenkins': 'Jenkins',
+        'ci/cd': 'CI/CD',
+        'agile': 'Agile',
+        'devops': 'DevOps',
+        'cloud': 'Cloud Computing',
+        'observability': 'Observability',
+        'monitoring': 'Monitoring',
+        'logging': 'Logging',
+        'distributed tracing': 'Distributed Tracing',
+        'llm': 'Large Language Models',
+        'genai': 'Generative AI',
+        'openai': 'OpenAI',
+        'openapi': 'OpenAPI',
+        'newrelic': 'New Relic',
+        'sqs': 'Amazon SQS',
+        'sns': 'Amazon SNS',
+        'api gateway': 'API Gateway',
+        'lambda': 'AWS Lambda',
+        'dynamodb': 'Amazon DynamoDB',
+        'vpc': 'Amazon VPC',
+        's3': 'Amazon S3',
+        'ec2': 'Amazon EC2',
+        'cloudflare': 'Cloudflare',
+        'cloudflare workers': 'Cloudflare Workers',
+        'tailwind css': 'Tailwind CSS',
+        'next.js': 'Next.js',
+        'socket.io': 'Socket.IO',
+        'recoil': 'Recoil',
+        'unit testing': 'Unit Testing',
+        'system design': 'System Design',
+        'problem solving': 'Problem Solving',
+        'data structures': 'Data Structures',
+        'algorithms': 'Algorithms',
+        'code reviews': 'Code Reviews',
+        'security': 'Security',
+        'encryption': 'Encryption',
+        'load balancing': 'Load Balancing',
+        'high availability': 'High Availability',
+        'scalability': 'Scalability',
+        'performance tuning': 'Performance Tuning',
+        'api design': 'API Design',
+        'web services': 'Web Services',
+        'express': 'Express.js',
+        'flask': 'Flask',
+        'django': 'Django',
+        'c++': 'C++',
+        'kafka': 'Kafka',
+        'rabbitmq': 'RabbitMQ',
+        'linux': 'Linux',
     }
     
     for keyword in jd_keywords[:6]:  # Top 6 keywords
@@ -692,27 +224,41 @@ def generate_authentic_summary(jd_keywords, job_description_content):
     
     # Default to current skills if no matches
     if not priority_skills:
-        priority_skills = ["React.js", "Next.js", "Node.js", "TypeScript", "Python"]
+        priority_skills = ['C++', "React.js", "Next.js", "Node.js", "TypeScript", "Python", "AWS"]
     
     core_skills_str = ", ".join(priority_skills[:4])  # Keep it concise
     
     return BASE_SUMMARY_TEMPLATE.format(core_skills=core_skills_str)
 
-def get_enhanced_prompt_strategy(base_resume_content, job_description_content):
+def get_enhanced_prompt_strategy(job_description_content, original_content_dict):
     """
     Enhanced prompt strategy that maintains authenticity while optimizing for ATS
+    Now includes original experience and project details.
     """
     jd_keywords = extract_jd_keywords(job_description_content)
     
+    # Format original content for the prompt
+    scale_ai_orig = original_content_dict.get("scale_ai_original", "N/A")
+    samsung_orig = original_content_dict.get("samsung_original", "N/A")
+    amazon_orig = original_content_dict.get("amazon_original", "N/A")
+    paytm_mini_orig = original_content_dict.get("paytm_mini_original", "N/A")
+    original_skills_text = "\n".join([f"- {cat}: {skills}" for cat, skills in original_content_dict.get("original_categorized_skills", {}).items()])
+    if not original_skills_text:
+        original_skills_text = "N/A (Original categorized skills not found or extracted)."
+
+
     return f"""
 You are an expert ATS resume optimizer specializing in Software Engineer positions. Your task is to enhance resume sections while maintaining authenticity and the candidate's actual experience.
+Your goal is to optimize the resume content for ATS score by incorporating relevant keywords from the provided job description, while preserving the core achievements and metrics of the original content.
 
 CRITICAL REQUIREMENTS:
-1. MAINTAIN AUTHENTICITY: Do not fabricate experiences or skills
-2. ENHANCE EXISTING CONTENT: Reword and optimize existing bullet points using JD terminology
-3. INCORPORATE KEYWORDS NATURALLY: Use JD keywords where they genuinely fit
-4. QUANTIFY ACHIEVEMENTS: Keep existing metrics, enhance where appropriate
-5. PRESERVE CORE EXPERIENCES: Don't change the fundamental nature of each role
+1.  **AUTHENTICITY IS KEY:** You MUST base your rewritten content on the provided "Original Experience & Project Details." Do NOT invent new experiences, roles, or projects.
+2.  **ENHANCEMENT, NOT FABRICATION:** Your task is to rephrase, expand, and optimize the *existing* bullet points by:
+    -   Incorporating relevant keywords from the "Job Description."
+    -   Using strong action verbs.
+    -   Maintaining or enhancing existing quantifiable metrics (percentages, numbers, scale).
+    -   Ensuring the core achievement, technology, and business impact of the original bullet point are preserved.
+3.  **LAZY EVALUATION:** If an original bullet point is already highly relevant and impactful for the JD, you may return it as is or with minimal, precise adjustments.
 
 EXTRACTED JD KEYWORDS: {', '.join(jd_keywords[:15])}
 
@@ -721,109 +267,201 @@ Job Description:
 {job_description_content}
 ---
 
-Base Resume Content:
+Original Experience & Project Details (Base for Enhancement):
 ---
-{base_resume_content}
+Scale AI (Original):
+{scale_ai_orig}
+
+Samsung R&D (Original):
+{samsung_orig}
+
+Amazon (Original):
+{amazon_orig}
+
+Paytm-mini (Original):
+{paytm_mini_orig}
+
+Original Categorized Skills Reference (for populating the 'skills' section):
+{original_skills_text}
 ---
 
-SPECIFIC INSTRUCTIONS:
-1. For each work experience section, REWRITE the existing bullet points. Each point should be a concise achievement. Separate each achievement with a newline and a bullet character '•'.
-   - Use more impactful action verbs
-   - Incorporate relevant JD keywords naturally
-   - Maintain the same core achievements and metrics
-   - Follow the pattern: Action Verb + Technology/Method + Quantifiable Result + Business Impact
+SPECIFIC INSTRUCTIONS FOR OUTPUT:
+1.  **Summary:** A concise 2-3 sentence summary (plain text, no bullet points) that highlights key skills relevant to the JD and author's experience.
+2.  **Skills:** A JSON object where keys are skill categories (e.g., "Programming Languages", "Tools and Frameworks") and values are comma-separated strings of relevant skills for that category. Prioritize JD-mentioned technologies within categories. You are provided with the original categorized skills for reference; adapt these, ensuring all original categories are present unless clearly irrelevant to the JD.
+    Original Categorized Skills Reference: 
+    {original_skills_text}
+3.  **Work Experience Sections (scale_ai_experience, samsung_experience, amazon_experience):** Enhance the *provided original bullet points* for these roles based on the enhancement rules above. Each point should be a concise achievement. Separate each point with a newline and a bullet character '•'.
+4.  **Projects (Paytm-mini):** Rewrite the *provided original project description* based on the enhancement rules above. This should be a concise description (at max 2-3 sentences). Separate each point with a newline and a bullet character '•'.
 
-2. For the projects section, enhance the existing project description with relevant JD keywords. Separate each point with a newline and a bullet character '•'.
-
-3. DO NOT CREATE: New experiences, fake metrics, or completely different roles
 
 OUTPUT REQUIREMENTS:
 Return ONLY a valid JSON object with these keys:
-- "summary": A 2-3 sentence summary (plain text, no bullet points).
-- "skills": JSON object where keys are skill categories (e.g., "Programming Languages", "Tools and Frameworks") and values are comma-separated strings of relevant skills for that category (plain text).
+- "summary": (string, plain text)
+- "skills": A JSON object. Use ONLY these keys for categories: "Programming Languages", "Tools and Frameworks", "Cloud Skills", "Databases", "Other". The value for each key should be a list of relevant skills as strings. Prioritize JD-mentioned technologies.
 - "scale_ai_experience": Enhanced bullet points for Scale AI role (separated by newlines and '•').
-- "samsung_experience": Enhanced bullet points for Samsung role  (separated by newlines and '•').
+- "samsung_experience": Enhanced bullet points for Samsung R&D role (separated by newlines and '•').
 - "amazon_experience": Enhanced bullet points for Amazon role (separated by newlines and '•').
-- "paytm_mini": Enhanced project description having at max 2-3 sentences (separated by newlines and '•').
-
+- "paytm_mini": (string, '\\item ' prefixed project description)
 
 IMPORTANT: Return ONLY the raw JSON object without any markdown code blocks, explanations, or additional text.
 Do not include ```json or ``` markers around your response.
 """
 
+def process_and_deduplicate_skills(skills_dict):
+    """
+    Cleans, de-duplicates, and standardizes skills within their categories.
+    """
+    if not isinstance(skills_dict, dict):
+        return {}
+
+    processed_skills = {}
+    seen_skills = set() # Keep track of all skills seen across all categories
+
+    # Define the desired order of categories
+    category_order = ["Programming Languages", "Tools and Frameworks", "Cloud Skills", "Databases", "Other"]
+
+    for category in category_order:
+        if category in skills_dict:
+            skills_list = skills_dict[category]
+            if not isinstance(skills_list, list):
+                continue # Skip if the value isn't a list
+
+            unique_skills_in_category = []
+            for skill in skills_list:
+                # Normalize skill: lowercase and strip whitespace
+                normalized_skill = skill.lower().strip()
+                if normalized_skill and normalized_skill not in seen_skills:
+                    # Capitalize for display, e.g., "react.js" -> "React.js"
+                    # This is a simple capitalization, can be improved if needed
+                    display_skill = skill.strip().capitalize() 
+                    unique_skills_in_category.append(display_skill)
+                    seen_skills.add(normalized_skill)
+            
+            if unique_skills_in_category:
+                 processed_skills[category] = ", ".join(unique_skills_in_category)
+
+    return processed_skills
+
+from itemize_lists_keys import ITEMIZE_LIST_KEYS
+import re
 def process_enhanced_api_response(content, jd_keywords):
     """
-    Process API response and add the generated skills and summary
+    Process API response and properly parse the JSON content.
+    Applies bullet formatting conditionally and LaTeX sanitization to all.
+    Handles structured skills data specifically to preserve dictionary format for Jinja2.
     """
-    from itemize_lists_keys import ITEMIZE_LIST_KEYS
-    
+    print("Processing and sanitizing content for LaTeX...")
+
     try:
-        # Clean up the content
+        # Strip any markdown code block markers (keep your existing logic for this)
         if content.startswith("```json"):
             end_marker = content.rfind("```")
-            if end_marker > 6:
+            if end_marker > 6:  # 6 is the length of "```json"
                 content = content[6:end_marker].strip()
             else:
                 content = content[6:].strip()
         elif content.startswith("```"):
             end_marker = content.rfind("```")
-            if end_marker > 3:
+            if end_marker > 3:  # 3 is the length of "```"
                 content = content[3:end_marker].strip()
             else:
                 content = content[3:].strip()
-                
+
+        # Validate JSON before further processing
         parsed_content = json.loads(content)
-        
-        # Generate authentic summary and categorized skills
-        authentic_summary = generate_authentic_summary(jd_keywords, "")
-        categorized_skills = generate_categorized_skills(jd_keywords)
-        
-        # Add summary and skills to parsed content
-        parsed_content["summary"] = authentic_summary
-        parsed_content["skills"] = categorized_skills
-        
-        # Required keys
-        required_keys = ["scale_ai_experience", "samsung_experience", "amazon_experience", "paytm_mini"]
-        
-        # Add missing keys with empty values
-        for key in required_keys:
-            if key not in parsed_content:
-                print(f"Warning: Missing key '{key}' in response. Adding empty value.")
-                parsed_content[key] = ""
-        
+
+        # Define required keys for better error handling
+        # Ensure all expected keys from your LLM prompt are listed here.
+        required_keys = ["summary", "skills", "scale_ai_experience", "samsung_experience", "amazon_experience", "paytm_mini"]
+        # Add other keys like "achievements" if they are expected from LLM and in template
+
+        # Initialize processed_content - this will hold the data ready for the Jinja2 template
         processed_content = {}
-        
-        # Process each value
-        for key, value in parsed_content.items():
+
+        # --- Handle the 'skills' key specifically first ---
+        llm_generated_skills_dict = parsed_content.get("skills", {})
+        if not isinstance(llm_generated_skills_dict, dict):
+            print(f"Warning: LLM did not return skills as a dictionary. Setting to empty dictionary or using a fallback strategy.")
+            llm_generated_skills_dict = {} # Ensure it's a dict for safety
+
+        # Generate the skills data in the format expected by the Jinja2 template.
+        # This means `generate_categorized_skills` should ideally return the structured dictionary,
+        # and then the sanitization of its values (category names, skill strings) happens here.
+        # For the provided `generate_categorized_skills` which returns a LaTeX string,
+        # we need to slightly adjust how `skills` is handled to pass a dictionary.
+        # Assuming your prompt instructs the LLM to return skills like:
+        # {"Programming Languages": "Python, Java", "Tools": "Docker, K8s"}
+
+        # If `generate_categorized_skills` in your code already returns a dictionary,
+        # then directly use its output. If it returns a LaTeX string, we need to adapt.
+        # Based on your definition of generate_categorized_skills, it creates LaTeX output directly.
+        # To make it work with the Jinja2 loop, we need the *raw, categorized* skills.
+        # So, instead of calling `generate_categorized_skills` to produce LaTeX string for `skills` key,
+        # we will directly use the `llm_generated_skills_dict` after sanitizing its components.
+
+        processed_skills_for_template = {}
+        if isinstance(llm_generated_skills_dict, dict):
+            for category, skill_string_or_list in llm_generated_skills_dict.items():
+                sanitized_category = sanitize_latex_content(category.strip())
+                if isinstance(skill_string_or_list, list):
+                    # If LLM returns a list of skills, join them into a string
+                    sanitized_skill_string = sanitize_latex_content(", ".join([s.strip() for s in skill_string_or_list if s.strip()]))
+                elif isinstance(skill_string_or_list, str):
+                    # If LLM returns a comma-separated string, sanitize it directly
+                    sanitized_skill_string = sanitize_latex_content(skill_string_or_list.strip())
+                else:
+                    print(f"Warning: Unexpected type for skill value in category '{category}'. Skipping.")
+                    continue
+                processed_skills_for_template[sanitized_category] = sanitized_skill_string
+        processed_content["skills"] = processed_skills_for_template
+
+
+        # --- Process other keys from parsed_content ---
+        for key in required_keys:
+            if key == "skills": # Already handled above, skip this in the general loop
+                continue
+
+            value = parsed_content.get(key, "")
             if not isinstance(value, str):
+                print(f"Warning: Value for '{key}' is not a string. Converting to string.")
                 value = str(value)
-            
-            # Apply bullet formatting for itemize list keys
+
             if key in ITEMIZE_LIST_KEYS:
+                # Apply bullet formatting and then sanitize for itemized sections
                 print(f"Formatting '{key}' as bullet points.")
                 formatted_value = format_bullet_points(value)
             else:
+                # For plain text keys like 'summary'
                 formatted_value = value.strip()
-                
+
             sanitized_value = sanitize_latex_content(formatted_value)
             processed_content[key] = sanitized_value
-            
-        print("Enhanced content processing complete.")
-        return processed_content
-        
+
+        print("Content processing complete.")
+        print("Processed content: ", processed_content) # This print should now show skills as a dictionary
+        return processed_content # This `processed_content` is passed to generate_resume_file
+
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON from API response: {e}")
         print("Raw response content:", content[:500] + "..." if len(content) > 500 else content)
         return None
+    except Exception as e:
+        print(f"An error occurred during content processing: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return None
 
-def generate_enhanced_tailored_content(base_resume_content, job_description_content):
+
+# --- Update generate_enhanced_tailored_content to pass original_content_dict ---
+def generate_enhanced_tailored_content(job_description_content, original_content_dict):
     """
     Generate tailored content using the enhanced approach
     """
     jd_keywords = extract_jd_keywords(job_description_content)
-    print(f"Extracted JD keywords: {jd_keywords[:10]}...")  # Show first 10
+    print(f"Extracted JD keywords: {jd_keywords[:10]}...")
     
-    prompt = get_enhanced_prompt_strategy(base_resume_content, job_description_content)
+    # Pass original_content_dict to the prompt strategy
+    prompt = get_enhanced_prompt_strategy(job_description_content, original_content_dict)
 
     try:
         print(f"Sending request to DeepSeek-r1-0528-qwen3-8b via LiteLLM...")
@@ -841,13 +479,14 @@ def generate_enhanced_tailored_content(base_resume_content, job_description_cont
             ],
             response_format={"type": "json_object"},
             max_tokens=2000,
-            temperature=0.3,  # Lower temperature for more consistent output
+            temperature=0.3,
             api_key=OPENROUTER_API_KEY
         )
 
         content = response.choices[0].message.content
         print(f"API response received")
         
+        # Pass jd_keywords to process_enhanced_api_response as it might be used there
         return process_enhanced_api_response(content, jd_keywords)
                 
     except Exception as e:
@@ -911,10 +550,12 @@ def compile_pdf(tex_path):
         os.chdir(output_dir)
         
         cmd = ['pdflatex', '-interaction=nonstopmode', filename]
-        process = subprocess.run(cmd, capture_output=True, text=True)
-        
+        process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        print(f"pdflatex output:\n{process.stdout}")
+        print(f"pdflatex stderr:\n{process.stderr}")
+        if process.returncode != 0:
+            print(f"pdflatex return code: {process.returncode}")
         os.chdir(original_dir)
-        
         if process.returncode == 0:
             pdf_path = tex_path.replace('.tex', '.pdf')
             print(f"• PDF successfully generated at {pdf_path}")
@@ -935,10 +576,16 @@ def main():
     os.makedirs(JD_FOLDER, exist_ok=True)
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-    base_resume_content = load_file(BASE_RESUME_TEMPLATE_PATH)
-    if base_resume_content is None:
-        print("Base resume template not found. Make sure base_resume_template.tex exists.")
+    # Load original resume content and extract details once at the start
+    original_resume_latex_content = load_file(ORIGINAL_RESUME_PATH)
+    if original_resume_latex_content is None:
+        print(f"Original resume not found. Make sure {ORIGINAL_RESUME_PATH} exists.")
         return
+
+    global ORIGINAL_RESUME_DETAILS # Populate the global variable
+    ORIGINAL_RESUME_DETAILS = extract_original_sections(original_resume_latex_content)
+    if not ORIGINAL_RESUME_DETAILS:
+        print("Warning: Could not extract any sections from the original resume. Proceeding without original content for enhancement.")
 
     print("Enhanced Authentic Resume Tailoring System Starting...")
     print("Features: Categorized skills, authentic summaries, keyword optimization")
@@ -963,17 +610,20 @@ def main():
             output_file_name_base = os.path.splitext(jd_file_name)[0]
             
             print("\n=== Generating enhanced authentic resume ===")
-            tailored_content = generate_enhanced_tailored_content(base_resume_content, job_description_content)
+            # Pass the extracted original content to the generation function
+            tailored_content = generate_enhanced_tailored_content(job_description_content, ORIGINAL_RESUME_DETAILS)
             
             if tailored_content:
                 output_tex_path = os.path.join(OUTPUT_FOLDER, f"{output_file_name_base}_enhanced_tailored.tex")
+                # When calling generate_resume_file, we still use BASE_RESUME_TEMPLATE_PATH
+                # because it contains the Jinja2 placeholders.
                 if generate_resume_file(BASE_RESUME_TEMPLATE_PATH, tailored_content, output_tex_path):
                     compile_pdf(output_tex_path)
                     
                     # Print preview of generated content
                     print("\n--- GENERATED CONTENT PREVIEW ---")
                     print("Summary:", tailored_content.get("summary", "")[:100] + "...")
-                    print("Skills preview:", tailored_content.get("skills", "")[:150] + "...")
+                    print("Skills preview:", str(tailored_content.get("skills", {}))[:150] + "...")
             
             processed_jds.add(jd_file_name)
 
